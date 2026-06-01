@@ -1,0 +1,3 @@
+interface:
+  display_name: "Maestro Testgen"
+  short_description: "Generate UI tests and Maestro flows"
