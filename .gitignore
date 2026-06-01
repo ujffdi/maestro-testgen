@@ -1,0 +1,23 @@
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Editor / IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Logs
+*.log
+
+# Maestro 运行产物
+.maestro/
+maestro-debug-output/
+*.maestro-screenshot.png
+
+# 临时文件
+*.tmp
+.cache/
