@@ -1,0 +1,25 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-marketplace-manifest.json",
+  "name": "maestro-testgen",
+  "description": "Maestro UI-behavior test generation skill for Android / iOS / Web.",
+  "owner": {
+    "name": "ujffdi",
+    "url": "https://github.com/ujffdi"
+  },
+  "plugins": [
+    {
+      "name": "maestro-testgen",
+      "source": "./",
+      "description": "Derive UI-behavior regression tests from a git diff or natural language, write a manual test case, then generate and auto-run a Maestro YAML flow via CLI + MCP.",
+      "keywords": [
+        "maestro",
+        "testing",
+        "qa",
+        "ui-testing",
+        "android",
+        "ios",
+        "web"
+      ]
+    }
+  ]
+}

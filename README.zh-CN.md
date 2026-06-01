@@ -20,6 +20,8 @@
 
 ```
 maestro-testgen/
+├── .claude-plugin/     # plugin.json + marketplace.json（本仓自托管 marketplace）
+├── .mcp.json           # 内置 Maestro MCP server（安装时自动注册）
 ├── SKILL.md            # 必需，含 name + description
 ├── references/         # 5 个参考文件（按需加载）
 │   ├── workflow.md             # 输入模式 A(git diff) / B(自然语言)，该读什么
@@ -33,18 +35,28 @@ maestro-testgen/
 
 ## 安装
 
-把整个目录拷到对应 agent 的 skills 位置即可：
+### 作为插件安装（推荐）
+
+```text
+/plugin marketplace add ujffdi/maestro-testgen
+/plugin install maestro-testgen@maestro-testgen
+```
+
+插件内置 `.mcp.json`，安装时会**自动注册** Maestro MCP server，无需手动 `claude mcp add`。
+
+### 手动安装（拷贝 skill）
 
 ```bash
 # Claude Code（项目级）
 cp -R maestro-testgen <你的项目>/.claude/skills/
+# 然后自行注册 MCP server：
+claude mcp add -s project maestro -- maestro mcp
 ```
 
-自动运行还需装 Maestro CLI 并注册 MCP（一次性）：
+两种方式都需安装 Maestro CLI（自动运行 YAML 必需）：
 
 ```bash
-curl -fsSL "https://get.maestro.mobile.dev" | bash   # Maestro CLI
-claude mcp add -s project maestro -- maestro mcp      # 注册 Maestro MCP
+curl -fsSL "https://get.maestro.mobile.dev" | bash
 ```
 
 详细用法见 [USAGE.zh-CN.md](./USAGE.zh-CN.md)。

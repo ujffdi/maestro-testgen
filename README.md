@@ -23,6 +23,8 @@ Core idea: **decide first → keep a manual case → then automate**.
 
 ```
 maestro-testgen/
+├── .claude-plugin/     # plugin.json + marketplace.json (self-hosted marketplace)
+├── .mcp.json           # bundled Maestro MCP server (auto-registered on install)
 ├── SKILL.md            # required, contains name + description
 ├── references/         # 5 on-demand reference files
 │   ├── workflow.md             # input modes A(git diff) / B(natural language), what to read
@@ -36,18 +38,29 @@ maestro-testgen/
 
 ## Install
 
-Copy the whole directory into the agent's skills location:
+### As a plugin (recommended)
+
+```text
+/plugin marketplace add ujffdi/maestro-testgen
+/plugin install maestro-testgen@maestro-testgen
+```
+
+The plugin bundles a `.mcp.json`, so the Maestro MCP server is registered
+automatically on install — no manual `claude mcp add` needed.
+
+### Manual (copy the skill)
 
 ```bash
 # Claude Code (project scope)
 cp -R maestro-testgen <your-project>/.claude/skills/
+# then register the MCP server yourself:
+claude mcp add -s project maestro -- maestro mcp
 ```
 
-For auto-run, also install the Maestro CLI and register the MCP server (one-time):
+Either way, install the Maestro CLI (required to auto-run YAML):
 
 ```bash
-curl -fsSL "https://get.maestro.mobile.dev" | bash   # Maestro CLI
-claude mcp add -s project maestro -- maestro mcp      # register Maestro MCP
+curl -fsSL "https://get.maestro.mobile.dev" | bash
 ```
 
 Full usage → [USAGE.md](./USAGE.md).

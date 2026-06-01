@@ -1,0 +1,24 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-plugin-manifest.json",
+  "name": "maestro-testgen",
+  "displayName": "Maestro Testgen",
+  "version": "0.1.0",
+  "description": "Derive UI-behavior regression tests from a git diff or natural language: write a durable manual test case first, then generate and auto-run a Maestro YAML flow (Android/iOS/Web) via CLI + MCP.",
+  "author": {
+    "name": "ujffdi",
+    "url": "https://github.com/ujffdi"
+  },
+  "homepage": "https://github.com/ujffdi/maestro-testgen",
+  "repository": "https://github.com/ujffdi/maestro-testgen",
+  "keywords": [
+    "maestro",
+    "testing",
+    "qa",
+    "ui-testing",
+    "regression",
+    "android",
+    "ios",
+    "web",
+    "mcp"
+  ]
+}

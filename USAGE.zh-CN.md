@@ -26,6 +26,18 @@
 
 ## 2. 安装 / 部署
 
+### 作为插件安装（推荐）
+
+```text
+/plugin marketplace add ujffdi/maestro-testgen
+/plugin install maestro-testgen@maestro-testgen
+```
+
+插件内置 `.mcp.json`，安装时自动注册 Maestro MCP server。仍需安装 Maestro CLI（见下）。
+之后直接看 §3 即可——下面的手动拷贝步骤仅用于非插件场景。
+
+### 手动部署
+
 这个目录本身就是标准 skill 源目录：
 
 ```

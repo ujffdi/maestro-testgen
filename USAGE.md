@@ -28,6 +28,19 @@ Core idea: **decide first → keep a manual case → then automate**.
 
 ## 2. Install / deploy
 
+### As a plugin (recommended)
+
+```text
+/plugin marketplace add ujffdi/maestro-testgen
+/plugin install maestro-testgen@maestro-testgen
+```
+
+The plugin bundles a `.mcp.json`, so the Maestro MCP server is registered
+automatically on install. You still need the Maestro CLI (see below). Then skip to
+§3 — the manual copy steps below are only for non-plugin setups.
+
+### Manual deploy
+
 This directory is itself a standard skill source directory:
 
 ```
