@@ -10,6 +10,7 @@
   },
   "homepage": "https://github.com/ujffdi/maestro-testgen",
   "repository": "https://github.com/ujffdi/maestro-testgen",
+  "license": "MIT",
   "keywords": [
     "maestro",
     "testing",
