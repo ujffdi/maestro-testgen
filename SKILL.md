@@ -22,13 +22,17 @@ flow** for Android / iOS / Web.
    integration tests instead.
 6. **Never delete core assertions just to make a Maestro test pass.**
 7. **Never default to coordinate taps.** Prefer stable selectors.
+8. **Auto-run the flow only when a device is online.** Never run `maestro test`
+   without a connected device/emulator/browser—detect first, otherwise degrade.
 
 ## Workflow (always in this order)
 
 1. **Detect input mode** — git diff vs natural language. See `references/workflow.md`.
 2. **Gather evidence** — read the changed/relevant code (pages, routes, Activity/
    Fragment, ViewModel, Compose/XML, SwiftUI/UIKit, React/Vue, existing Maestro
-   flows). See `references/workflow.md`.
+   flows). See `references/workflow.md`. When a device is online, you may use the
+   Maestro MCP tools (or `maestro hierarchy`) to inspect the live view hierarchy
+   and pick stable selectors. See `references/run-and-mcp.md`.
 3. **Emit the Test Routing Decision** (see schema below). Apply
    `references/decision-rules.md` to classify UI behavior vs pure logic.
 4. **Write the manual test case** using `references/manual-case-template.md`.
@@ -38,7 +42,11 @@ flow** for Android / iOS / Web.
 6. **If `ready`, generate the Maestro YAML** per `references/maestro-yaml-rules.md`.
    Save to `qa/manual-cases/maestro-flows/<case_id>.yaml` (or the project's existing
    Maestro dir, e.g. `maestro/flows/`).
-7. Provide the run command, or—if not `ready`—explain the blocker and what to supply.
+7. **Auto-run the flow.** Detect a device with `maestro list-devices`. If one is
+   online, run `maestro test <path>` and report pass/fail with logs; on failure,
+   triage per `references/run-and-mcp.md`. If no device is online, **degrade**:
+   print the run command and tell the user to start a device (`maestro start-device`)
+   first—do not run. If not `ready`, explain the blocker and what to supply.
 
 ## Test Routing Decision (emit this first, always)
 
@@ -61,15 +69,20 @@ test_routing_decision:
 2. Manual test case content + save path
 3. Automation feasibility judgment
 4. Maestro YAML content + save path
-5. Suggested run command
+5. Auto-run result (pass/fail + logs) when a device is online, or the run command
+   plus a "start a device first" note when none is online
 6. If no YAML: the `blocked` reason and what info is still needed
 
-## Optional: running Maestro
+## Running Maestro (CLI + MCP)
 
-If the Maestro CLI is available you may suggest or run:
+Running is automatic once the YAML is `ready` and a device is online. The detect →
+run → degrade flow, the one-time Maestro MCP registration, MCP-driven selector
+calibration, and failure triage all live in `references/run-and-mcp.md`.
 
 ```bash
-maestro test qa/manual-cases/maestro-flows/<case_id>.yaml
+maestro list-devices                                          # detect first
+maestro test qa/manual-cases/maestro-flows/<case_id>.yaml     # run if a device is online
+maestro start-device                                          # suggest this when none online
 ```
 
 On failure: read logs/screenshots, classify the cause (App/Web bug vs selector vs
@@ -82,3 +95,4 @@ clear. Never strip core assertions to force a pass.
 - `references/decision-rules.md` — what suits Maestro vs what doesn't.
 - `references/manual-case-template.md` — the manual test case format.
 - `references/maestro-yaml-rules.md` — Maestro YAML authoring rules.
+- `references/run-and-mcp.md` — MCP setup, device detection, auto-run, failure triage.

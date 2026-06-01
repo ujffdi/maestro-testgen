@@ -1,4 +1,4 @@
-# maestro-testgen 使用教程
+# maestro-testgen Usage Guide · 使用教程
 
 > 一个根据 **git diff** 或 **自然语言描述** 推导 UI 行为回归测试的 skill：
 > 先产出「人工测试用例留存文档」，仅在自动化可行时再生成可运行的 **Maestro YAML flow**。
@@ -15,7 +15,8 @@
 | 判断一次改动是否属于「用户可见 UI 行为」 | 不直接从 diff 一把梭生成 YAML |
 | 先写一份人工测试用例（可留存、可人工执行） | 不为纯逻辑（Mapper/Service/排序/格式化…）生成 Maestro |
 | 自动化可行时生成 Maestro YAML（稳定 selector，不用坐标） | 不会为了让测试通过而删除核心断言 |
-| 给出运行命令；CLI 可用时还能跑并分析失败原因 | 不会在证据不足时硬编 YAML |
+| 有设备在线时用 CLI 自动跑 YAML 并归因失败；用 MCP 探查实时层级校准 selector | 不会在证据不足时硬编 YAML |
+| 无设备在线时降级：只给运行命令并提示先启动设备 | 不会在没有设备时硬跑 `maestro test` |
 
 核心理念：**先决策 → 先留存人工用例 → 再谈自动化**。
 
@@ -28,7 +29,7 @@
 ```
 maestro-testgen/
 ├── SKILL.md            # 必需，含 name + description
-├── references/         # 4 个参考文件（按需加载）
+├── references/         # 5 个参考文件（按需加载）
 └── agents/openai.yaml  # Codex UI 元数据
 ```
 
@@ -47,15 +48,65 @@ cp -R maestro-testgen <你的项目>/.codex/skills/
 
 部署后，在对应项目里直接用下面的「触发语」即可被自动调用。
 
-可选：安装 Maestro CLI，才能真正运行生成的 YAML
+安装 Maestro CLI（自动运行 YAML 必需）
 ```bash
 curl -fsSL "https://get.maestro.mobile.dev" | bash
 maestro --version
 ```
 
+可选：注册 Maestro MCP，让 agent 能探查实时 UI 层级、校准 selector
+```bash
+# 项目级（写入 .mcp.json，团队共享）
+claude mcp add -s project maestro -- maestro mcp
+# 或用户级
+claude mcp add maestro -- maestro mcp
+```
+
 ---
 
 ## 3. 触发方式
+
+### 手动触发指令流程（从零到「测试已跑出结果」）
+
+按顺序操作即可。第 0 步装一次，之后每次只需第 1～2 步。
+
+**0. 一次性安装（每项目/机器一次）**
+```bash
+cp -R maestro-testgen <你的项目>/.claude/skills/        # ① 拷 skill
+curl -fsSL "https://get.maestro.mobile.dev" | bash       # ② 装 Maestro CLI
+claude mcp add -s project maestro -- maestro mcp          # ③ 注册 Maestro MCP
+claude mcp get maestro                                    #    验证已连上
+```
+
+**1. 启动一个设备（每次跑测试前）**
+```bash
+maestro start-device     # 起模拟器/Simulator；或自己连真机/开浏览器
+maestro list-devices     # 确认有设备在线（自动运行的前置门槛）
+```
+
+**2. 在 agent 对话里手动触发**（不是终端）
+```text
+/maestro-testgen 根据当前 diff 生成 Maestro 测试
+```
+触发后 agent 会**自动**走完：路由判断 → 人工用例落盘 → 可行性判断 → 生成 YAML（生成前用 MCP 探层级挑 selector）→ 探到设备就 `maestro test` 跑全程 → 回报 pass/fail + 日志。**无需再手动跑。**
+
+**3.（可选）自己手动复跑同一条 flow / 接 CI**
+```bash
+maestro test qa/manual-cases/maestro-flows/<case_id>.yaml
+```
+
+哪些手动、哪些自动：
+
+| 步骤 | 谁来做 |
+|---|---|
+| 安装、注册 MCP、起设备 | **你手动**（终端） |
+| `/maestro-testgen ...` 触发 | **你手动**（对话框一句话） |
+| 生成用例 + YAML + 跑 `maestro test` + 归因失败 | **agent 自动** |
+| 复跑 / 接 CI | 你手动（可选） |
+
+> 没设备在线时：agent 不会硬跑，只把 `maestro test ...` 命令 + 「先 `maestro start-device`」提示给你，起完设备再触发一次即可。
+
+### 触发语示例
 
 直接用自然语言说出意图即可，例如：
 
@@ -81,7 +132,7 @@ skill 支持两种输入模式，会自动识别：
 2. **人工测试用例**内容 + 保存路径
 3. **自动化可行性**判断
 4. **Maestro YAML** 内容 + 保存路径（仅当可行性为 `ready`）
-5. **建议运行命令**
+5. **自动运行结果**：有设备在线时自动 `maestro test` 跑全程并给出 pass/fail + 日志；无设备时降级，只给运行命令并提示先启动设备
 6. 若未生成 YAML：说明 `blocked` 原因和需要补充的信息
 
 ### Test Routing Decision 长这样
@@ -187,9 +238,10 @@ appId: com.example.app
 
 > 注：Jetpack Compose 的 `testTag` 在 Maestro 里用 `id` selector 匹配。
 
-运行命令：
+自动运行（检测到设备时）：
 ```bash
-maestro test qa/manual-cases/maestro-flows/login-otp-error-001.yaml
+maestro list-devices                                                   # 先探测
+maestro test qa/manual-cases/maestro-flows/login-otp-error-001.yaml     # 有设备则自动跑
 ```
 
 ### 示例 B：纯逻辑改动（会被拒绝生成 YAML）
@@ -209,12 +261,17 @@ test_routing_decision:
 
 ---
 
-## 8. 运行与失败排查
+## 8. 自动运行与失败排查
 
-CLI 可用时，agent 可建议或执行：
+YAML 为 `ready` 且有设备在线时，agent 会**自动运行**——无需在 Maestro Studio 手动点击：
 ```bash
-maestro test qa/manual-cases/maestro-flows/<case_id>.yaml
+maestro list-devices                                          # 探测设备（运行前置门槛）
+maestro test qa/manual-cases/maestro-flows/<case_id>.yaml     # 有设备 → 自动跑全程
+maestro start-device                                          # 无设备时提示先执行
 ```
+
+无设备在线时降级：只给出运行命令并提示先启动设备/模拟器或连接真机，不会硬跑。
+MCP 注册后，agent 还会在生成 YAML 前探查实时 UI 层级来校准 selector（详见 `references/run-and-mcp.md`）。
 
 失败时 agent 会读日志 / 截图，并把原因归类：
 
@@ -281,3 +338,4 @@ A：不会。如果项目已有用例 / Maestro 目录，skill 会优先用现�
 | `references/decision-rules.md` | 适合 / 不适合 Maestro 的判定 |
 | `references/manual-case-template.md` | 人工用例模板与填写指引 |
 | `references/maestro-yaml-rules.md` | Maestro YAML 编写规则与失败排查 |
+| `references/run-and-mcp.md` | MCP 注册、设备探测、自动运行、失败归因 |

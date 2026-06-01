@@ -53,15 +53,10 @@ prefer `data-testid` / `text` selectors.
 
 ## Running & failure triage
 
-```bash
-maestro test qa/manual-cases/maestro-flows/<case_id>.yaml
-```
+Running is automatic once the flow is `ready` and a device is online: detect with
+`maestro list-devices`, then `maestro test <path>`; if no device is online, degrade
+to printing the command. The full detect → run → degrade flow, Maestro MCP setup,
+selector calibration, and failure-triage rules live in `references/run-and-mcp.md`.
 
-On failure, read logs + screenshots and classify the root cause:
-- **App/Web bug** — report it; do not paper over with YAML changes.
-- **Selector issue** — switch to a more stable selector.
-- **Timing issue** — add/adjust waits.
-- **Test data issue** — fix the precondition data, not the assertion.
-- **Environment issue** — note the env requirement.
-
-Only edit the YAML when the evidence is clear, and never by removing core assertions.
+Always: only edit the YAML when the evidence is clear, and never by removing core
+assertions just to force a pass.
