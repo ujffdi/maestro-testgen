@@ -47,13 +47,29 @@ stable selector you can see:
 Use what you observe to replace guessed selectors. **Never fall back to coordinate
 taps.** If no stable selector exists, that is a `needs_selector` blocker—report it.
 
-## Step 3 — run the flow (CLI, full YAML)
+## Step 3 — run the flow (CLI, full YAML) and emit a report
+
+Maestro's report format defaults to `NOOP` — **no report file is written**, only debug
+logs under `~/.maestro/tests/<timestamp>/`. **Always pass `--format`** so a durable,
+archivable report is produced:
 
 ```bash
-maestro test qa/manual-cases/maestro-flows/<case_id>.yaml
+maestro test qa/manual-cases/maestro-flows/<case_id>.yaml \
+  --format HTML-DETAILED --output qa/manual-cases/reports/<case_id>.html \
+  --test-output-dir qa/manual-cases/evidence/<case_id>
+# CI: use --format JUNIT --output qa/manual-cases/reports/<case_id>.xml
 ```
 
-Report pass/fail with the relevant logs. On pass, you're done. On failure, triage.
+Formats: `HTML-DETAILED` / `HTML` (human review), `JUNIT` (CI), `NOOP` (default, none).
+
+**Screenshots go in the qa dir, not Maestro's temp.** `--test-output-dir
+qa/manual-cases/evidence/<case_id>` routes screenshots and test artifacts there; combine
+with in-flow `takeScreenshot: qa/manual-cases/evidence/<case_id>/<step>` for durable PASS
+evidence. Without this, shots land under `~/.maestro/tests/<timestamp>/` and are purged
+after 14 days.
+
+Report pass/fail with the relevant logs, the saved report path **and the evidence dir**.
+On pass, you're done. On failure, triage.
 
 ## Degrade path (no device online)
 

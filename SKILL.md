@@ -42,9 +42,14 @@ flow** for Android / iOS / Web.
 6. **If `ready`, generate the Maestro YAML** per `references/maestro-yaml-rules.md`.
    Save to `qa/manual-cases/maestro-flows/<case_id>.yaml` (or the project's existing
    Maestro dir, e.g. `maestro/flows/`).
-7. **Auto-run the flow.** Detect a device with `maestro list-devices`. If one is
-   online, run `maestro test <path>` and report pass/fail with logs; on failure,
-   triage per `references/run-and-mcp.md`. If no device is online, **degrade**:
+7. **Auto-run the flow and emit a report.** Detect a device with `maestro list-devices`.
+   If one is online, run the flow **with a report format** (Maestro defaults to `NOOP`,
+   i.e. no report file, so always pass `--format`):
+   `maestro test <path> --format HTML-DETAILED --output qa/manual-cases/reports/<case_id>.html --test-output-dir qa/manual-cases/evidence/<case_id>`
+   (use `--format JUNIT` for CI; `--test-output-dir` puts screenshots/artifacts in the qa
+   dir, not `~/.maestro/tests/`). Report pass/fail with logs, the saved report path and
+   the evidence dir;
+   on failure, triage per `references/run-and-mcp.md`. If no device is online, **degrade**:
    print the run command and tell the user to start a device (`maestro start-device`)
    first—do not run. If not `ready`, explain the blocker and what to supply.
 
@@ -71,7 +76,9 @@ test_routing_decision:
 4. Maestro YAML content + save path
 5. Auto-run result (pass/fail + logs) when a device is online, or the run command
    plus a "start a device first" note when none is online
-6. If no YAML: the `blocked` reason and what info is still needed
+6. Test report path (`qa/manual-cases/reports/`) and evidence/screenshot dir
+   (`qa/manual-cases/evidence/<case_id>/`) when a device is online
+7. If no YAML: the `blocked` reason and what info is still needed
 
 ## Running Maestro (CLI + MCP)
 
@@ -81,7 +88,10 @@ calibration, and failure triage all live in `references/run-and-mcp.md`.
 
 ```bash
 maestro list-devices                                          # detect first
-maestro test qa/manual-cases/maestro-flows/<case_id>.yaml     # run if a device is online
+# run if a device is online — always pass --format (default is NOOP = no report):
+maestro test qa/manual-cases/maestro-flows/<case_id>.yaml \
+  --format HTML-DETAILED --output qa/manual-cases/reports/<case_id>.html \
+  --test-output-dir qa/manual-cases/evidence/<case_id>        # screenshots/artifacts → qa dir
 maestro start-device                                          # suggest this when none online
 ```
 
