@@ -36,16 +36,35 @@ maestro list-devices
 
 ## Step 2 — calibrate selectors with MCP (when a device is online)
 
-Before/while authoring the YAML, inspect the live view hierarchy and prefer the most
-stable selector you can see:
+**Read selectors from layout XML / resource files FIRST**, fall back to live inspect
+only for what static reads can't answer:
 
-- Via MCP: launch the app and query the hierarchy through the Maestro MCP tools,
-  then read `id` / `text` / `accessibilityLabel` / `contentDescription` / `testTag`
-  / `data-testid` off real nodes.
-- Via CLI: `maestro hierarchy` prints the connected device's hierarchy.
+- Static first: layout XML (`android:id`, `onClick` bindings), string resources
+  (`R.string`, per-locale), Compose `testTag`s. This is faster and cheaper than
+  dumping a hierarchy and usually gives you the id/text directly.
+- Live inspect only resolves: (a) no-id / dynamic elements, (b) position-dependent
+  elements (RTL/LTR), (c) which screen you are actually on, (d) overlap surprises.
+- When you do inspect, **ignore platform-chrome noise** — `com.android.systemui:*`
+  (status bar) and IME packages (`com.google.android.inputmethod*`) are never your
+  selectors. Only `<appId>:id/*` nodes matter. Match each abbreviated `txt`/`rid`
+  off the **real node**, never off a screenshot.
 
-Use what you observe to replace guessed selectors. **Never fall back to coordinate
-taps.** If no stable selector exists, that is a `needs_selector` blocker—report it.
+Apply the selector ladder in `maestro-yaml-rules.md`; a documented point tap for a
+truly id-less element is the bottom rung, not a blocker.
+
+### Calibrate once, validate once (avoid traversing the flow 3×)
+
+The expensive mistake is walking the whole flow via MCP **and then** re-running it
+all via CLI — two full traversals plus any reset is 3-4× the work.
+
+- Walk the screens via MCP **once**, only far enough to read each screen's
+  selectors. Do **not** complete the flow MCP-by-MCP as your validation.
+- Assemble the YAML, then let the **CLI run (Step 3) be the single validation
+  traversal**.
+- For state-mutating flows (settings toggles, profile edits, language switch):
+  snapshot the precondition once, and if the MCP calibration already changed state,
+  **reset once** to the precondition before the CLI run. Budget exactly two
+  traversals (calibrate + validate), not four.
 
 ## Step 3 — run the flow (CLI, full YAML) and emit a report
 

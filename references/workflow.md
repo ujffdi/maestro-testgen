@@ -40,6 +40,26 @@ Steps:
 2. Read existing tests / Maestro flows for that area.
 3. Then proceed to the Test Routing Decision, manual case, and (if feasible) YAML.
 
+## Gather selector evidence in one batched pass (don't drip greps)
+
+The static facts a flow needs — appId, the `onClick`/`android:id` of each touched
+view, and the per-locale `R.string` for any text selector — are all independent.
+Pull them in **one batched command**, not N sequential greps. e.g. for Android:
+
+```bash
+# appId
+grep -rn "applicationId" app/build.gradle*
+# ids behind the onClick handlers you'll tap (repeat -e per handler)
+grep -rn -A2 -e "openLanguage\|openEdit\|editName" <module>/src/main/res/layout/
+# the dialog/input layout ids + per-locale strings in one shot
+grep -rn "android:id\|EditText\|Button" <module>/src/main/res/layout/dialog_input.xml
+for k in setting language confirm edit; do
+  grep -rh "name=\"$k\">" lib/src/main/res/values/strings.xml lib/src/main/res/values-ar/strings.xml
+done
+```
+
+Read the referenced source files together (one batch of Read calls), then move on.
+
 ## After evidence gathering (both modes)
 
 Proceed through the SKILL.md workflow:

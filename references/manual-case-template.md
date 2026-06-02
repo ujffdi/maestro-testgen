@@ -22,7 +22,12 @@ project's existing test-case directory if one exists). Use a clear, stable
 - 环境：
 - 服务端数据：
 - 权限状态：
+- 起始状态 / 幂等性：     # 如「当前语言=阿拉伯语（非目标语言）」——开关类用例常非幂等
 - 其他依赖：
+
+## 清理 / 复位 (Teardown)
+- 运行后残留状态：       # 如「语言已变英文、昵称已改为 Test Test」
+- 复位步骤：             # 重跑前如何恢复前置条件（无则写「无需复位」）
 
 ## 测试步骤
 1. 
@@ -44,6 +49,13 @@ project's existing test-case directory if one exists). Use a clear, stable
 
 - **测试步骤** must be concrete and reproducible by a human (no ambiguous "verify it
   works").
+- **起始状态 / 幂等性** — toggles (settings switches, language pickers, follow/block)
+  are often **not idempotent**: e.g. a language picker's Confirm button only appears
+  when the chosen value differs from the current one, so the test must start from a
+  non-target value. State the required start value, and whether re-running needs a reset.
+- **清理 / 复位** — if the flow mutates account/server state, record what it leaves
+  behind and how to restore it. The run report should warn the user about residual
+  state and offer to reset.
 - **预期结果** are the assertions—these map directly to Maestro `assertVisible` etc.
   Never weaken or drop them to ease automation.
 - **自动化可行性** drives whether YAML is generated:

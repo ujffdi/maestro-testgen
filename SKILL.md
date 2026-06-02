@@ -21,7 +21,9 @@ flow** for Android / iOS / Web.
    entry point), **stop—do not generate Maestro YAML**; recommend unit or
    integration tests instead.
 6. **Never delete core assertions just to make a Maestro test pass.**
-7. **Never default to coordinate taps.** Prefer stable selectors.
+7. **Don't default to coordinate taps** — walk the selector ladder
+   (`maestro-yaml-rules.md`): id → locale-independent text → a11y → relative →
+   `point` as a documented last resort for truly id-less elements (not a blocker).
 8. **Auto-run the flow only when a device is online.** Never run `maestro test`
    without a connected device/emulator/browser—detect first, otherwise degrade.
 
@@ -30,9 +32,11 @@ flow** for Android / iOS / Web.
 1. **Detect input mode** — git diff vs natural language. See `references/workflow.md`.
 2. **Gather evidence** — read the changed/relevant code (pages, routes, Activity/
    Fragment, ViewModel, Compose/XML, SwiftUI/UIKit, React/Vue, existing Maestro
-   flows). See `references/workflow.md`. When a device is online, you may use the
-   Maestro MCP tools (or `maestro hierarchy`) to inspect the live view hierarchy
-   and pick stable selectors. See `references/run-and-mcp.md`.
+   flows) — read selectors from layout XML / resource files first, in one batched
+   pass (see `references/workflow.md`). When a device is online, use the Maestro MCP
+   tools (or `maestro hierarchy`) to inspect the live hierarchy only for what static
+   reads can't answer (no-id / position-dependent elements), and calibrate once —
+   don't re-traverse the whole flow. See `references/run-and-mcp.md`.
 3. **Emit the Test Routing Decision** (see schema below). Apply
    `references/decision-rules.md` to classify UI behavior vs pure logic.
 4. **Write the manual test case** using `references/manual-case-template.md`.
@@ -78,7 +82,10 @@ test_routing_decision:
    plus a "start a device first" note when none is online
 6. Test report path (`qa/manual-cases/reports/`) and evidence/screenshot dir
    (`qa/manual-cases/evidence/<case_id>/`) when a device is online
-7. If no YAML: the `blocked` reason and what info is still needed
+7. **State-mutation warning** — if the flow changed account/server state (settings,
+   profile, language, follow/block), tell the user what was left behind and offer to
+   reset to the precondition
+8. If no YAML: the `blocked` reason and what info is still needed
 
 ## Running Maestro (CLI + MCP)
 

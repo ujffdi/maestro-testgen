@@ -8,8 +8,18 @@ Web are all supported as long as the project and target platform support Maestro
 - Each flow covers **one clear UI behavior**. Don't bundle unrelated paths.
 - Include a correct launch target: `appId` for Android/iOS, or the Web URL/launch
   config for web flows.
-- **Prefer stable selectors**: `text`, `id`, `accessibilityLabel`,
-  `contentDescription`, `testTag`, `data-testid`. **Avoid coordinate taps.**
+- **Selector fallback ladder** — go down a rung only when the rung above is
+  genuinely unavailable on the real node:
+  1. `id` / `testTag` / `data-testid` (most stable; locale- and RTL-independent)
+  2. `text` — only a **locale-independent literal** (e.g. a hardcoded `"English"`,
+     a number); never a translated string for a screen whose language can change
+  3. `accessibilityLabel` / `contentDescription`
+  4. **relative** position: `below` / `above` / `leftOf` / `rightOf` a stable anchor
+  5. `point: "x%,y%"` — **last resort only**, for an element with no id/text/desc.
+     Comment why, and record an "app should add an id" fix in the manual case.
+  A point tap for a truly id-less element is **not** a `needs_selector` blocker —
+  it is the bottom rung. Reserve `needs_selector` for when even a reliable point
+  tap is impossible (element off-screen, dynamic position, etc.).
 - Add necessary waits: `waitForAnimationToEnd`, `extendedWaitUntil`, and
   `assertVisible` before interacting / asserting.
 - **Do not hardcode YAML** when test accounts, server-side data, or stable selectors
@@ -22,6 +32,23 @@ Web are all supported as long as the project and target platform support Maestro
   project root; `.png` is appended automatically). This keeps PASS evidence next to the
   case—`~/.maestro/tests/` only holds Maestro's auto failure shots and is purged after
   14 days.
+
+## RTL / locale-switch / overlapping selectors (Android especially)
+
+These traps are invisible in source code — only the live hierarchy reveals them:
+
+- **RTL ⇄ LTR flips positions.** An Arabic (RTL) layout mirrors to LTR when the
+  language switches, so any element targeted by `point` or by `leftOf/rightOf`
+  **moves to the opposite side**. For RTL apps, or any flow that crosses a language
+  switch, **calibrate positional/point selectors on the post-switch screen**, and
+  prefer `resource-id` — ids are mirror-stable.
+- **Container center can overlap a clickable child.** `tapOn { id: bigContainer }`
+  taps the container's geometric center; if a clickable child sits there, the child
+  fires instead (e.g. a header background whose center overlaps a copy-id view →
+  the tap copies an ID instead of navigating). Tap an offset `point`, or target a
+  non-overlapping anchor inside the container.
+- **Bottom nav / tab ids stay stable across RTL/LTR** even though their on-screen
+  order mirrors — always select them by id, never by position.
 
 ## Save path
 
