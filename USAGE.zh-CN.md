@@ -17,7 +17,7 @@
 | 判断一次改动是否属于「用户可见 UI 行为」 | 不直接从 diff 一把梭生成 YAML |
 | 先写一份人工测试用例（可留存、可人工执行） | 不为纯逻辑（Mapper/Service/排序/格式化…）生成 Maestro |
 | 自动化可行时生成 Maestro YAML（稳定 selector，不用坐标） | 不会为了让测试通过而删除核心断言 |
-| 有设备在线时用 CLI 自动跑 YAML 并归因失败；用 MCP 探查实时层级校准 selector | 不会在证据不足时硬编 YAML |
+| 有设备在线时用 CLI 自动跑 YAML、把 HTML 报告 + 截图落到 qa 目录并归因失败；用 MCP 探查实时层级校准 selector | 不会在证据不足时硬编 YAML |
 | 无设备在线时降级：只给运行命令并提示先启动设备 | 不会在没有设备时硬跑 `maestro test` |
 
 核心理念：**先决策 → 先留存人工用例 → 再谈自动化**。
@@ -43,6 +43,7 @@
 ```
 maestro-testgen/
 ├── SKILL.md            # 必需，含 name + description
+├── commands/           # /maestro-testgen 斜杠命令（插件自动发现）
 ├── references/         # 5 个参考文件（按需加载）
 └── agents/openai.yaml  # Codex UI 元数据
 ```
@@ -102,11 +103,12 @@ maestro list-devices     # 确认有设备在线（自动运行的前置门槛�
 ```text
 /maestro-testgen 根据当前 diff 生成 Maestro 测试
 ```
-触发后 agent 会**自动**走完：路由判断 → 人工用例落盘 → 可行性判断 → 生成 YAML（生成前用 MCP 探层级挑 selector）→ 探到设备就 `maestro test` 跑全程 → 回报 pass/fail + 日志。**无需再手动跑。**
+触发后 agent 会**自动**走完：路由判断 → 人工用例落盘 → 可行性判断 → 生成 YAML（生成前用 MCP 探层级挑 selector）→ 探到设备就 `maestro test` 跑全程 → 回报 pass/fail + 日志，并把 HTML 报告与截图落到 qa 目录。**无需再手动跑。**
 
 **3.（可选）自己手动复跑同一条 flow / 接 CI**
 ```bash
-maestro test qa/manual-cases/maestro-flows/<case_id>.yaml
+maestro test qa/manual-cases/maestro-flows/<case_id>.yaml \
+  --format JUNIT --output qa/manual-cases/reports/<case_id>.xml      # 适合 CI 的报告
 ```
 
 哪些手动、哪些自动：
@@ -147,7 +149,8 @@ skill 支持两种输入模式，会自动识别：
 3. **自动化可行性**判断
 4. **Maestro YAML** 内容 + 保存路径（仅当可行性为 `ready`）
 5. **自动运行结果**：有设备在线时自动 `maestro test` 跑全程并给出 pass/fail + 日志；无设备时降级，只给运行命令并提示先启动设备
-6. 若未生成 YAML：说明 `blocked` 原因和需要补充的信息
+6. **报告路径**（`qa/manual-cases/reports/<case_id>.html`）与**截图/证据目录**（`qa/manual-cases/evidence/<case_id>/`）——有设备在线时
+7. 若未生成 YAML：说明 `blocked` 原因和需要补充的信息
 
 ### Test Routing Decision 长这样
 
@@ -171,6 +174,8 @@ test_routing_decision:
 |---|---|
 | 人工测试用例 | `qa/manual-cases/<case_id>.md` |
 | Maestro flow | `qa/manual-cases/maestro-flows/<case_id>.yaml`（或项目已有 Maestro 目录，如 `maestro/flows/`） |
+| 测试报告 | `qa/manual-cases/reports/<case_id>.html`（务必传 `--format`；默认 `NOOP` 不出报告） |
+| 截图 / 证据 | `qa/manual-cases/evidence/<case_id>/`（经 `--test-output-dir` + 流内 `takeScreenshot`） |
 
 如果项目已有测试用例 / Maestro 目录，优先使用现有目录。
 
@@ -255,7 +260,9 @@ appId: com.example.app
 自动运行（检测到设备时）：
 ```bash
 maestro list-devices                                                   # 先探测
-maestro test qa/manual-cases/maestro-flows/login-otp-error-001.yaml     # 有设备则自动跑
+maestro test qa/manual-cases/maestro-flows/login-otp-error-001.yaml \
+  --format HTML-DETAILED --output qa/manual-cases/reports/login-otp-error-001.html \
+  --test-output-dir qa/manual-cases/evidence/login-otp-error-001       # 报告 + 截图 → qa 目录
 ```
 
 ### 示例 B：纯逻辑改动（会被拒绝生成 YAML）
@@ -280,9 +287,14 @@ test_routing_decision:
 YAML 为 `ready` 且有设备在线时，agent 会**自动运行**——无需在 Maestro Studio 手动点击：
 ```bash
 maestro list-devices                                          # 探测设备（运行前置门槛）
-maestro test qa/manual-cases/maestro-flows/<case_id>.yaml     # 有设备 → 自动跑全程
+# 有设备 → 自动跑全程；务必传 --format（默认 NOOP 不出报告）：
+maestro test qa/manual-cases/maestro-flows/<case_id>.yaml \
+  --format HTML-DETAILED --output qa/manual-cases/reports/<case_id>.html \
+  --test-output-dir qa/manual-cases/evidence/<case_id>        # 截图/产物 → qa 目录
 maestro start-device                                          # 无设备时提示先执行
 ```
+
+`--format` 会输出可留存报告（`HTML-DETAILED` / `HTML` 供人工查看，`JUNIT` 供 CI）；不传则默认 `NOOP` 不写报告。`--test-output-dir` 把截图/产物路由到 qa 目录，而非 14 天后清理的 `~/.maestro/tests/`；配合流内 `takeScreenshot: qa/manual-cases/evidence/<case_id>/<step>` 留存 PASS 证据。
 
 无设备在线时降级：只给出运行命令并提示先启动设备/模拟器或连接真机，不会硬跑。
 MCP 注册后，agent 还会在生成 YAML 前探查实时 UI 层级来校准 selector（详见 `references/run-and-mcp.md`）。

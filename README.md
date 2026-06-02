@@ -16,7 +16,7 @@ Core idea: **decide first → keep a manual case → then automate**.
 | Judge whether a change is user-visible UI behavior | Generate YAML straight from a diff |
 | Write a durable, human-runnable manual test case first | Generate Maestro for pure logic (Mapper/Service/sort/format…) |
 | Generate Maestro YAML when feasible (stable selectors, no coordinates) | Delete core assertions just to make a test pass |
-| Auto-run YAML via CLI when a device is online & triage failures; inspect the live hierarchy via MCP to calibrate selectors | Hardcode YAML when evidence is insufficient |
+| Auto-run YAML via CLI when a device is online, emit an HTML report + screenshots into the qa dir & triage failures; inspect the live hierarchy via MCP to calibrate selectors | Hardcode YAML when evidence is insufficient |
 | Degrade when no device is online: print the run command + prompt to start a device | Hard-run `maestro test` with no device |
 
 ## Directory layout
@@ -26,6 +26,7 @@ maestro-testgen/
 ├── .claude-plugin/     # plugin.json + marketplace.json (self-hosted marketplace)
 ├── .mcp.json           # bundled Maestro MCP server (auto-registered on install)
 ├── SKILL.md            # required, contains name + description
+├── commands/           # /maestro-testgen slash command (auto-discovered by the plugin)
 ├── references/         # 5 on-demand reference files
 │   ├── workflow.md             # input modes A(git diff) / B(natural language), what to read
 │   ├── decision-rules.md       # what suits Maestro vs not
@@ -73,6 +74,8 @@ Full usage → [USAGE.md](./USAGE.md).
 4. Write the manual test case document (**primary deliverable**)
 5. Judge automation feasibility
 6. Generate Maestro YAML only when `ready`
-7. Auto-run: `maestro list-devices` → if a device is online, `maestro test`
-   end-to-end and triage failures; if none, degrade (print command + prompt
-   `maestro start-device`). Otherwise explain the blocker and what to supply.
+7. Auto-run: `maestro list-devices` → if a device is online, run `maestro test`
+   end-to-end with `--format` (default is `NOOP` = no report), emit an HTML report
+   to `qa/manual-cases/reports/` + screenshots to `qa/manual-cases/evidence/`, then
+   triage failures; if none, degrade (print command + prompt `maestro start-device`).
+   Otherwise explain the blocker and what to supply.

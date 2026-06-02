@@ -13,7 +13,7 @@
 | 判断一次改动是否属于「用户可见 UI 行为」 | 不直接从 diff 一把梭生成 YAML |
 | 先写一份人工测试用例（可留存、可人工执行） | 不为纯逻辑（Mapper/Service/排序/格式化…）生成 Maestro |
 | 自动化可行时生成 Maestro YAML（稳定 selector，不用坐标） | 不会为了让测试通过而删除核心断言 |
-| 有设备在线时用 CLI 自动跑 YAML 并分析失败；用 MCP 探查实时层级校准 selector | 不会在证据不足时硬编 YAML |
+| 有设备在线时用 CLI 自动跑 YAML、把 HTML 报告 + 截图落到 qa 目录并分析失败；用 MCP 探查实时层级校准 selector | 不会在证据不足时硬编 YAML |
 | 无设备在线时降级：只给运行命令并提示先启动设备 | 不会在没有设备时硬跑 `maestro test` |
 
 ## 目录结构
@@ -23,6 +23,7 @@ maestro-testgen/
 ├── .claude-plugin/     # plugin.json + marketplace.json（本仓自托管 marketplace）
 ├── .mcp.json           # 内置 Maestro MCP server（安装时自动注册）
 ├── SKILL.md            # 必需，含 name + description
+├── commands/           # /maestro-testgen 斜杠命令（插件自动发现）
 ├── references/         # 5 个参考文件（按需加载）
 │   ├── workflow.md             # 输入模式 A(git diff) / B(自然语言)，该读什么
 │   ├── decision-rules.md       # 什么适合 Maestro，什么不适合
@@ -69,4 +70,4 @@ curl -fsSL "https://get.maestro.mobile.dev" | bash
 4. 写人工测试用例文档（**主交付物**）
 5. 判断自动化可行性
 6. 仅当 `ready` 时生成 Maestro YAML
-7. 自动运行：`maestro list-devices` 探测设备 → 有设备则 `maestro test` 跑全程并归因失败；无设备则降级（给命令 + 提示先 `maestro start-device`）。或说明 blocker 及需补充的信息
+7. 自动运行：`maestro list-devices` 探测设备 → 有设备则带 `--format` 跑 `maestro test` 全程（默认 `NOOP` 不出报告），把 HTML 报告落到 `qa/manual-cases/reports/`、截图落到 `qa/manual-cases/evidence/`，并归因失败；无设备则降级（给命令 + 提示先 `maestro start-device`）。或说明 blocker 及需补充的信息

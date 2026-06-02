@@ -19,7 +19,7 @@
 | Judge whether a change is user-visible UI behavior | Generate YAML straight from a diff |
 | Write a durable, human-runnable manual test case first | Generate Maestro for pure logic (Mapper/Service/sort/format…) |
 | Generate Maestro YAML when feasible (stable selectors, no coordinates) | Delete core assertions just to make a test pass |
-| Auto-run YAML via CLI when a device is online & triage failures; inspect the live hierarchy via MCP to calibrate selectors | Hardcode YAML when evidence is insufficient |
+| Auto-run YAML via CLI when a device is online, emit an HTML report + screenshots into the qa dir & triage failures; inspect the live hierarchy via MCP to calibrate selectors | Hardcode YAML when evidence is insufficient |
 | Degrade when no device is online: print the run command + prompt to start a device | Hard-run `maestro test` with no device |
 
 Core idea: **decide first → keep a manual case → then automate**.
@@ -46,6 +46,7 @@ This directory is itself a standard skill source directory:
 ```
 maestro-testgen/
 ├── SKILL.md            # required, contains name + description
+├── commands/           # /maestro-testgen slash command (auto-discovered by the plugin)
 ├── references/         # 5 on-demand reference files
 └── agents/openai.yaml  # Codex UI metadata
 ```
@@ -109,11 +110,13 @@ maestro list-devices     # confirm a device is online (the gate for auto-run)
 Once triggered, the agent runs through it **automatically**: routing decision →
 write the manual case → feasibility judgment → generate YAML (inspecting the
 hierarchy via MCP to pick selectors first) → if a device is detected, run
-`maestro test` end-to-end → report pass/fail + logs. **No manual run needed.**
+`maestro test` end-to-end → report pass/fail + logs, plus an HTML report and
+screenshots in the qa dir. **No manual run needed.**
 
 **3. (Optional) Re-run the same flow yourself / wire into CI**
 ```bash
-maestro test qa/manual-cases/maestro-flows/<case_id>.yaml
+maestro test qa/manual-cases/maestro-flows/<case_id>.yaml \
+  --format JUNIT --output qa/manual-cases/reports/<case_id>.xml      # CI-friendly report
 ```
 
 What's manual vs automatic:
@@ -162,7 +165,9 @@ On each invocation the agent outputs in this order:
 5. **Auto-run result**: when a device is online, runs `maestro test` end-to-end and
    gives pass/fail + logs; when none, degrades to printing the run command and a
    "start a device first" prompt
-6. If no YAML: the `blocked` reason and what info is still needed
+6. **Report path** (`qa/manual-cases/reports/<case_id>.html`) and **evidence/screenshot
+   dir** (`qa/manual-cases/evidence/<case_id>/`) when a device is online
+7. If no YAML: the `blocked` reason and what info is still needed
 
 ### A Test Routing Decision looks like this
 
@@ -186,6 +191,8 @@ test_routing_decision:
 |---|---|
 | Manual test case | `qa/manual-cases/<case_id>.md` |
 | Maestro flow | `qa/manual-cases/maestro-flows/<case_id>.yaml` (or the project's existing Maestro dir, e.g. `maestro/flows/`) |
+| Test report | `qa/manual-cases/reports/<case_id>.html` (always pass `--format`; default `NOOP` = no report) |
+| Screenshots / evidence | `qa/manual-cases/evidence/<case_id>/` (via `--test-output-dir` + in-flow `takeScreenshot`) |
 
 If the project already has a test-case / Maestro directory, prefer the existing one.
 
@@ -272,7 +279,9 @@ appId: com.example.app
 Auto-run (when a device is detected):
 ```bash
 maestro list-devices                                                   # detect first
-maestro test qa/manual-cases/maestro-flows/login-otp-error-001.yaml     # run if a device is online
+maestro test qa/manual-cases/maestro-flows/login-otp-error-001.yaml \
+  --format HTML-DETAILED --output qa/manual-cases/reports/login-otp-error-001.html \
+  --test-output-dir qa/manual-cases/evidence/login-otp-error-001       # report + screenshots → qa dir
 ```
 
 ### Example B: pure-logic change (YAML generation is refused)
@@ -298,9 +307,18 @@ When the YAML is `ready` and a device is online, the agent **auto-runs** — no 
 click in Maestro Studio:
 ```bash
 maestro list-devices                                          # detect device (the gate for running)
-maestro test qa/manual-cases/maestro-flows/<case_id>.yaml     # device online → run end-to-end
+# device online → run end-to-end; always pass --format (default NOOP = no report):
+maestro test qa/manual-cases/maestro-flows/<case_id>.yaml \
+  --format HTML-DETAILED --output qa/manual-cases/reports/<case_id>.html \
+  --test-output-dir qa/manual-cases/evidence/<case_id>        # screenshots/artifacts → qa dir
 maestro start-device                                          # suggested when none is online
 ```
+
+`--format` writes a durable report (`HTML-DETAILED` / `HTML` for review, `JUNIT` for
+CI); without it Maestro defaults to `NOOP` and writes none. `--test-output-dir` routes
+screenshots/artifacts into the qa dir instead of the purged-after-14-days
+`~/.maestro/tests/`; pair it with in-flow `takeScreenshot:
+qa/manual-cases/evidence/<case_id>/<step>` for durable PASS evidence.
 
 When no device is online it degrades: only prints the run command and prompts you to
 start a device/emulator or connect a real device — it won't hard-run.
